@@ -24,13 +24,73 @@
     <main class="dashboard">
       <section class="game-card">
         <div class="scene" id="scene">
-          <div class="sun-glow"></div>
-          <div class="cloud cloud-a"></div>
-          <div class="cloud cloud-b"></div>
-          <div class="hill hill-back"></div>
-          <div class="hill hill-front"></div>
-          <div class="plant plant-a">🌿</div>
-          <div class="plant plant-b">🌱</div>
+          <svg class="scene-landscape" viewBox="0 0 1200 650" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="skyGradient" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stop-color="#d9efd9" />
+                <stop offset="0.48" stop-color="#aee0e6" />
+                <stop offset="1" stop-color="#98d5df" />
+              </linearGradient>
+              <radialGradient id="sunGradient">
+                <stop offset="0" stop-color="#fff5b6" />
+                <stop offset="0.68" stop-color="#f7df7b" />
+                <stop offset="1" stop-color="#f7df7b" stop-opacity="0" />
+              </radialGradient>
+              <linearGradient id="volcanoGradient" x1="0" x2="1">
+                <stop offset="0" stop-color="#8b6856" />
+                <stop offset="1" stop-color="#735140" />
+              </linearGradient>
+            </defs>
+            <rect width="1200" height="650" fill="url(#skyGradient)" />
+            <circle class="scene-sun" cx="145" cy="120" r="72" fill="url(#sunGradient)" />
+
+            <g class="scene-cloud scene-cloud-a" fill="#fff9dc" opacity="0.86">
+              <ellipse cx="315" cy="135" rx="95" ry="36" />
+              <circle cx="274" cy="120" r="38" />
+              <circle cx="333" cy="104" r="49" />
+              <circle cx="384" cy="123" r="36" />
+            </g>
+            <g class="scene-cloud scene-cloud-b" fill="#f7fbeb" opacity="0.82">
+              <ellipse cx="760" cy="95" rx="74" ry="29" />
+              <circle cx="728" cy="84" r="31" />
+              <circle cx="771" cy="72" r="39" />
+              <circle cx="808" cy="88" r="28" />
+            </g>
+
+            <path d="M0,412 C95,348 184,357 258,402 C356,331 464,345 576,413 C674,345 785,361 890,410 C990,355 1100,373 1200,425 L1200,650 L0,650 Z" fill="#a8c79f" />
+            <path d="M0,468 C115,411 229,428 332,474 C442,419 557,422 670,471 C786,412 905,431 1012,470 C1084,439 1146,439 1200,456 L1200,650 L0,650 Z" fill="#83ae6b" />
+            <path d="M0,536 C130,480 252,494 374,542 C489,495 626,498 747,540 C867,493 1015,511 1200,552 L1200,650 L0,650 Z" fill="#6f9c59" />
+
+            <g class="volcano">
+              <path d="M840,470 L960,200 L1084,470 Z" fill="url(#volcanoGradient)" />
+              <path d="M897,470 C919,392 928,317 940,245" stroke="#6d4d42" stroke-width="11" stroke-linecap="round" fill="none" opacity="0.45" />
+              <path d="M1024,470 C1008,400 995,315 978,244" stroke="#9a7864" stroke-width="9" stroke-linecap="round" fill="none" opacity="0.38" />
+              <ellipse cx="961" cy="204" rx="47" ry="17" fill="#593f37" />
+              <ellipse cx="961" cy="205" rx="30" ry="9" fill="#46342f" opacity="0.9" />
+              <g class="smoke" fill="#4c5554" opacity="0.36">
+                <circle class="smoke-a" cx="963" cy="159" r="18" />
+                <circle class="smoke-b" cx="952" cy="125" r="28" />
+                <circle class="smoke-c" cx="970" cy="88" r="36" />
+              </g>
+            </g>
+
+            <ellipse cx="185" cy="590" rx="106" ry="24" fill="#86c8c7" stroke="#c1e7df" stroke-width="10" opacity="0.96" />
+            <ellipse cx="185" cy="587" rx="67" ry="10" fill="#a9ded7" opacity="0.75" />
+
+            <g class="fern fern-left" stroke="#2e6f47" stroke-linecap="round" fill="none">
+              <path d="M66,645 C65,610 67,578 70,548" stroke-width="5" />
+              <path d="M70,560 l-24,-22 M70,572 l28,-25 M69,584 l-31,-17 M69,596 l31,-17 M68,608 l-29,-11 M68,620 l28,-11" stroke-width="4" />
+            </g>
+            <g class="fern fern-mid" stroke="#2e6f47" stroke-linecap="round" fill="none">
+              <path d="M385,650 C381,607 385,572 393,540" stroke-width="5" />
+              <path d="M391,550 l-25,-22 M390,566 l29,-24 M388,582 l-29,-16 M387,598 l32,-17 M385,614 l-27,-11 M384,629 l28,-10" stroke-width="4" />
+            </g>
+            <g class="fern fern-right" stroke="#2e6f47" stroke-linecap="round" fill="none">
+              <path d="M1073,650 C1071,611 1074,578 1080,548" stroke-width="5" />
+              <path d="M1079,560 l-24,-22 M1078,574 l29,-24 M1077,588 l-30,-16 M1076,602 l32,-17 M1075,618 l-27,-11 M1074,633 l29,-10" stroke-width="4" />
+            </g>
+          </svg>
+
           <div class="hatchery" id="hatchery" aria-label="Dino-Brutplatz"></div>
           <div class="scene-message" id="sceneMessage">Die ersten Eier warten schon …</div>
         </div>
@@ -81,7 +141,7 @@
           <div class="mini-note" id="progressNote">Die Dinos schlüpfen nacheinander – mit überlappenden Eiern.</div>
         </div>
 
-        <div class="dino-grid" id="dinoGrid" aria-label="9 Dino-Eier"></div>
+        <div class="dino-grid" id="dinoGrid" aria-label="Fortschritt der 9 Dino-Eier"></div>
       </section>
 
       <section class="task-card">

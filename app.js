@@ -14,9 +14,21 @@ const defaults = {
   durationMinutes: 30,
   rewardXp: 5,
   assignment: '1. Bearbeitet die Aufgaben.\n2. Vergleicht eure Ergebnisse.\n3. Einigt euch auf eine gemeinsame Lösung.',
-  threshold: 62,
+  sensitivity: 55,
   toleranceMs: 2000,
 };
+
+const HATCH_SCHEDULE = [
+  { start: 0.00, duration: 0.20, x: 11, y: 18, scale: 0.92, dino: '🦖' },
+  { start: 0.10, duration: 0.20, x: 30, y: 10, scale: 0.78, dino: '🦕' },
+  { start: 0.20, duration: 0.20, x: 48, y: 20, scale: 0.88, dino: '🦖' },
+  { start: 0.30, duration: 0.20, x: 68, y: 11, scale: 0.76, dino: '🦕' },
+  { start: 0.40, duration: 0.20, x: 82, y: 23, scale: 0.84, dino: '🦖' },
+  { start: 0.50, duration: 0.20, x: 20, y: 51, scale: 0.80, dino: '🦕' },
+  { start: 0.60, duration: 0.20, x: 39, y: 57, scale: 0.90, dino: '🦖' },
+  { start: 0.70, duration: 0.20, x: 62, y: 53, scale: 0.82, dino: '🦕' },
+  { start: 0.80, duration: 0.20, x: 79, y: 57, scale: 0.94, dino: '🦖' },
+];
 
 let state = loadState();
 let timer = null;
@@ -35,13 +47,23 @@ let micStream = null;
 let rafId = null;
 
 const els = Object.fromEntries([
-  'classTitle','settingsBtn','fullscreenBtn','noiseText','modePill','meterFill','progressText','progressFill','progressNote','dinoGrid','timerDisplay','startBtn','pauseBtn','resetBtn','assignmentDisplay','xpText','rewardXpText','settingsDialog','settingsForm','classSelect','modeSelect','durationInput','rewardXpInput','assignmentInput','thresholdInput','thresholdValue','toleranceSelect','newClassInput','addClassBtn','micBtn','saveSettingsBtn','toast','egg','dinoFace','sparkles'
+  'classTitle','settingsBtn','fullscreenBtn','noiseText','modePill','meterFill','thresholdMarker','progressText','progressFill','progressNote','dinoGrid','timerDisplay','startBtn','pauseBtn','resetBtn','assignmentDisplay','xpText','rewardXpText','settingsDialog','settingsForm','classSelect','modeSelect','durationInput','rewardXpInput','assignmentInput','sensitivityInput','sensitivityValue','toleranceSelect','newClassInput','addClassBtn','micBtn','saveSettingsBtn','toast','hatchery','sceneMessage','liveSensitivityInput','liveSensitivityValue','liveToleranceSelect'
 ].map(id => [id, document.getElementById(id)]));
 
 function loadState() {
   try {
     const raw = localStorage.getItem('classroomQuestState');
-    return raw ? { ...defaults, ...JSON.parse(raw) } : structuredClone(defaults);
+    if (!raw) return structuredClone(defaults);
+
+    const parsed = JSON.parse(raw);
+    const merged = { ...defaults, ...parsed };
+
+    // Migration from v0.1: old builds stored a direct threshold instead of sensitivity.
+    if (typeof parsed.sensitivity !== 'number' && typeof parsed.threshold === 'number') {
+      merged.sensitivity = Math.max(0, Math.min(100, Math.round((100 - parsed.threshold) / 0.72)));
+    }
+
+    return merged;
   } catch {
     return structuredClone(defaults);
   }
@@ -75,8 +97,10 @@ function render() {
   els.assignmentDisplay.textContent = state.assignment;
   els.xpText.textContent = `${state.classes[state.selectedClass]?.xp ?? 0} XP`;
   els.rewardXpText.textContent = `+${state.rewardXp}`;
+  syncLiveControls();
   renderTimer();
   renderProgress();
+  updateNoiseUi(currentNoise);
 }
 
 function renderTimer() {
@@ -85,24 +109,70 @@ function renderTimer() {
   els.timerDisplay.textContent = `${min}:${sec}`;
 }
 
+function baseThresholdFromSensitivity() {
+  // 0% sensitivity ≈ very forgiving, 100% = very strict.
+  return Math.max(22, 100 - state.sensitivity * 0.72);
+}
+
 function effectiveThreshold() {
-  return Math.min(98, state.threshold * MODES[state.mode].multiplier);
+  return Math.min(98, baseThresholdFromSensitivity() * MODES[state.mode].multiplier);
 }
 
 function progressPercent() {
   const total = state.durationMinutes * 60;
   const earliestFinish = Math.max(1, total - 180);
 
-  // A perfect phase may finish exactly 3 minutes early. Noise costs quality time,
-  // so a louder class finishes later or may not complete the challenge at all.
+  // Perfect noise discipline may complete exactly three minutes early.
+  // Loud periods reduce quality time, so completion moves later.
   const qualityProgress = qualitySeconds / earliestFinish;
   const timeCap = elapsedSec / earliestFinish;
   let value = Math.min(qualityProgress, timeCap);
 
-  // Never allow completion before the final three-minute window.
   if (elapsedSec < earliestFinish) value = Math.min(value, 0.99);
 
   return Math.max(0, Math.min(1, value));
+}
+
+function localHatchProgress(globalProgress, item) {
+  return Math.max(0, Math.min(1, (globalProgress - item.start) / item.duration));
+}
+
+function hatchStage(local) {
+  if (local <= 0) return 'hidden';
+  if (local < 0.18) return 'arriving';
+  if (local < 0.42) return 'wobble';
+  if (local < 0.67) return 'crack';
+  if (local < 0.86) return 'peek';
+  return 'hatched';
+}
+
+function renderHatchery(globalProgress) {
+  const units = [...els.hatchery.children];
+  let hatched = 0;
+  let active = 0;
+
+  units.forEach((unit, index) => {
+    const local = localHatchProgress(globalProgress, HATCH_SCHEDULE[index]);
+    const stage = hatchStage(local);
+
+    unit.dataset.stage = stage;
+    unit.style.setProperty('--local-progress', local.toFixed(3));
+
+    if (local > 0 && local < 1) active += 1;
+    if (stage === 'hatched') hatched += 1;
+  });
+
+  if (globalProgress <= 0.001) {
+    els.sceneMessage.textContent = 'Die ersten Eier warten schon …';
+  } else if (hatched === 0) {
+    els.sceneMessage.textContent = `${active} Ei${active === 1 ? '' : 'er'} in Bewegung …`;
+  } else if (hatched < 9) {
+    els.sceneMessage.textContent = `${hatched}/9 Dinos geschlüpft · ${active} gerade aktiv`;
+  } else {
+    els.sceneMessage.textContent = '🎉 Alle 9 Dinos sind da! Haltet die Lautstärke bis zum Ende.';
+  }
+
+  return { hatched, active };
 }
 
 function renderProgress() {
@@ -111,31 +181,26 @@ function renderProgress() {
   els.progressText.textContent = `${pct} %`;
   els.progressFill.style.width = `${pct}%`;
 
+  const { hatched, active } = renderHatchery(p);
   const total = state.durationMinutes * 60;
   const unlockAt = Math.max(0, total - 180);
+
   if (elapsedSec < unlockAt) {
     const mins = Math.ceil((unlockAt - elapsedSec) / 60);
-    els.progressNote.textContent = `Der Abschluss wird in ca. ${mins} Min. freigeschaltet.`;
+    els.progressNote.textContent = `${hatched}/9 geschlüpft · ${active} aktiv · kompletter Abschluss frühestens in ca. ${mins} Min.`;
   } else if (p < 1) {
-    els.progressNote.textContent = 'Finalphase! Haltet die passende Arbeitslautstärke.';
+    els.progressNote.textContent = `${hatched}/9 geschlüpft · Finalphase! Haltet die passende Arbeitslautstärke.`;
   } else {
-    els.progressNote.textContent = 'Challenge geschafft – Arbeitszeit läuft trotzdem weiter.';
+    els.progressNote.textContent = '9/9 geschlüpft · Challenge geschafft – die Arbeitszeit läuft trotzdem weiter.';
   }
 
-  const doneCount = Math.floor(p * 9 + 0.0001);
-  [...els.dinoGrid.children].forEach((node, i) => {
-    node.textContent = i < doneCount ? '🦖' : '🥚';
-    node.classList.toggle('done', i < doneCount);
+  [...els.dinoGrid.children].forEach((node, index) => {
+    const local = localHatchProgress(p, HATCH_SCHEDULE[index]);
+    const stage = hatchStage(local);
+    node.textContent = stage === 'hatched' ? HATCH_SCHEDULE[index].dino : local > 0 ? '🐣' : '🥚';
+    node.classList.toggle('active', local > 0 && stage !== 'hatched');
+    node.classList.toggle('done', stage === 'hatched');
   });
-
-  const stage = p >= 1 ? 5 : p >= .72 ? 4 : p >= .48 ? 3 : p >= .24 ? 2 : p > .03 ? 1 : 0;
-  els.egg.className = 'egg';
-  if (stage > 0) els.egg.classList.add('active');
-  if (stage >= 2) els.egg.classList.add('stage-2');
-  if (stage >= 3) els.egg.classList.add('stage-3','hatching');
-  if (stage >= 4) els.egg.classList.add('stage-4');
-  if (stage >= 5) els.egg.classList.add('stage-5');
-  els.sparkles.classList.toggle('show', stage >= 5);
 
   if (p >= 1 && !successAwarded) {
     successAwarded = true;
@@ -149,7 +214,7 @@ function renderProgress() {
 
 function classifyNoise(level) {
   const t = effectiveThreshold();
-  if (level < t * .62) return 'quiet';
+  if (level < t * 0.62) return 'quiet';
   if (level <= t) return 'good';
   return 'loud';
 }
@@ -157,6 +222,14 @@ function classifyNoise(level) {
 function updateNoiseUi(level) {
   currentNoise = level;
   els.meterFill.style.width = `${Math.min(100, level)}%`;
+  const threshold = effectiveThreshold();
+  els.thresholdMarker.style.left = `${Math.min(98, threshold)}%`;
+
+  if (!analyser) {
+    els.noiseText.textContent = 'Mikrofon noch nicht gestartet';
+    return;
+  }
+
   const cls = classifyNoise(level);
   if (cls === 'quiet') els.noiseText.textContent = 'Sehr ruhig – super!';
   else if (cls === 'good') els.noiseText.textContent = 'Passende Arbeitslautstärke';
@@ -165,7 +238,14 @@ function updateNoiseUi(level) {
 
 async function enableMic() {
   try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    if (micStream) {
+      showToast('🎤 Mikrofon ist bereits aktiv');
+      return;
+    }
+
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const source = audioCtx.createMediaStreamSource(micStream);
     analyser = audioCtx.createAnalyser();
@@ -215,7 +295,7 @@ function tick() {
     if (!tooLong) qualitySeconds += 0.45;
   } else {
     badSince = null;
-    qualitySeconds += noiseClass === 'quiet' ? 1 : 0.93;
+    qualitySeconds += 1;
   }
 
   renderTimer();
@@ -228,7 +308,12 @@ function startTimer() {
   if (!analyser) showToast('Tipp: Mikrofon aktivieren, sonst läuft die Demo neutral.');
   timer = setInterval(tick, 1000);
 }
-function pauseTimer() { running = false; clearInterval(timer); }
+
+function pauseTimer() {
+  running = false;
+  clearInterval(timer);
+}
+
 function resetTimer() {
   pauseTimer();
   remainingSec = state.durationMinutes * 60;
@@ -239,6 +324,37 @@ function resetTimer() {
   render();
 }
 
+function syncLiveControls() {
+  els.liveSensitivityInput.value = state.sensitivity;
+  els.liveSensitivityValue.textContent = `${state.sensitivity}%`;
+  els.liveToleranceSelect.value = String(state.toleranceMs);
+}
+
+function setSensitivity(value, source = 'live') {
+  state.sensitivity = Math.max(0, Math.min(100, Number(value)));
+  saveState();
+
+  els.liveSensitivityInput.value = state.sensitivity;
+  els.liveSensitivityValue.textContent = `${state.sensitivity}%`;
+  els.sensitivityInput.value = state.sensitivity;
+  els.sensitivityValue.textContent = state.sensitivity;
+  updateNoiseUi(currentNoise);
+
+  if (source === 'live') {
+    clearTimeout(setSensitivity.t);
+    setSensitivity.t = setTimeout(() => showToast(`Mic-Sensitivity: ${state.sensitivity}%`), 220);
+  }
+}
+
+function setTolerance(value, source = 'live') {
+  state.toleranceMs = Number(value);
+  saveState();
+  els.liveToleranceSelect.value = String(state.toleranceMs);
+  els.toleranceSelect.value = String(state.toleranceMs);
+  badSince = null;
+  if (source === 'live') showToast(`Lärm-Toleranz: ${state.toleranceMs / 1000} Sek.`);
+}
+
 function openSettings() {
   populateClasses();
   els.classSelect.value = state.selectedClass;
@@ -246,22 +362,32 @@ function openSettings() {
   els.durationInput.value = state.durationMinutes;
   els.rewardXpInput.value = state.rewardXp;
   els.assignmentInput.value = state.assignment;
-  els.thresholdInput.value = state.threshold;
-  els.thresholdValue.textContent = state.threshold;
+  els.sensitivityInput.value = state.sensitivity;
+  els.sensitivityValue.textContent = state.sensitivity;
   els.toleranceSelect.value = String(state.toleranceMs);
   els.settingsDialog.showModal();
 }
 
 function applySettings() {
+  const oldDuration = state.durationMinutes;
   state.selectedClass = els.classSelect.value;
   state.mode = els.modeSelect.value;
   state.durationMinutes = Number(els.durationInput.value || 30);
   state.rewardXp = Number(els.rewardXpInput.value || 0);
   state.assignment = els.assignmentInput.value.trim() || 'Arbeitsauftrag folgt.';
-  state.threshold = Number(els.thresholdInput.value || 62);
+  state.sensitivity = Number(els.sensitivityInput.value || 55);
   state.toleranceMs = Number(els.toleranceSelect.value || 2000);
+
+  if (!state.classes[state.selectedClass]) state.classes[state.selectedClass] = { xp: 0 };
+
+  if (elapsedSec === 0) {
+    remainingSec = state.durationMinutes * 60;
+  } else if (oldDuration !== state.durationMinutes) {
+    remainingSec = Math.max(0, state.durationMinutes * 60 - elapsedSec);
+  }
+
   saveState();
-  resetTimer();
+  render();
 }
 
 function initDinos() {
@@ -274,6 +400,34 @@ function initDinos() {
   }
 }
 
+function initHatchery() {
+  els.hatchery.innerHTML = '';
+
+  HATCH_SCHEDULE.forEach((item, index) => {
+    const unit = document.createElement('div');
+    unit.className = 'hatch-unit';
+    unit.dataset.stage = 'hidden';
+    unit.style.setProperty('--x', `${item.x}%`);
+    unit.style.setProperty('--y', `${item.y}%`);
+    unit.style.setProperty('--scale', item.scale);
+    unit.style.setProperty('--delay', `${(index % 4) * -0.35}s`);
+    unit.innerHTML = `
+      <div class="mini-nest"></div>
+      <div class="scene-egg" aria-label="Dino-Ei ${index + 1}">
+        <i class="egg-spot spot-a"></i>
+        <i class="egg-spot spot-b"></i>
+        <i class="egg-spot spot-c"></i>
+        <i class="egg-crack crack-a"></i>
+        <i class="egg-crack crack-b"></i>
+        <i class="egg-crack crack-c"></i>
+      </div>
+      <div class="scene-dino" aria-hidden="true">${item.dino}</div>
+      <div class="hatch-sparkle" aria-hidden="true">✨</div>
+    `;
+    els.hatchery.appendChild(unit);
+  });
+}
+
 els.settingsBtn.addEventListener('click', openSettings);
 els.fullscreenBtn.addEventListener('click', async () => {
   if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
@@ -283,7 +437,13 @@ els.startBtn.addEventListener('click', startTimer);
 els.pauseBtn.addEventListener('click', pauseTimer);
 els.resetBtn.addEventListener('click', resetTimer);
 els.micBtn.addEventListener('click', enableMic);
-els.thresholdInput.addEventListener('input', () => els.thresholdValue.textContent = els.thresholdInput.value);
+
+els.liveSensitivityInput.addEventListener('input', event => setSensitivity(event.target.value, 'live'));
+els.liveToleranceSelect.addEventListener('change', event => setTolerance(event.target.value, 'live'));
+els.sensitivityInput.addEventListener('input', () => {
+  els.sensitivityValue.textContent = els.sensitivityInput.value;
+});
+
 els.addClassBtn.addEventListener('click', () => {
   const name = els.newClassInput.value.trim();
   if (!name) return;
@@ -295,7 +455,8 @@ els.addClassBtn.addEventListener('click', () => {
   els.newClassInput.value = '';
   showToast(`${name} angelegt`);
 });
-els.settingsForm.addEventListener('submit', (event) => {
+
+els.settingsForm.addEventListener('submit', event => {
   if (event.submitter?.value === 'cancel') return;
   event.preventDefault();
   applySettings();
@@ -303,6 +464,7 @@ els.settingsForm.addEventListener('submit', (event) => {
 });
 
 initDinos();
+initHatchery();
 populateClasses();
 render();
 openSettings();

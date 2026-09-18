@@ -1,26 +1,21 @@
-# Classroom Quest – erster Prototyp
+# Classroom Quest
 
-Ein browserbasierter Lautstärke-Monitor mit Timer, Arbeitsauftrag, Klassen-XP und Dino-Challenge.
+Ein kleiner, lokaler Classroom-Noise-Monitor mit Timer, Arbeitsauftrag, Klassen-XP und animierter Dino-Challenge.
 
-## Enthalten
+## Aktueller Stand: v0.2
 
-- Klassen lokal speichern
-- Klassen-XP
-- Stillarbeit / Partnerarbeit / Gruppenarbeit / Freiarbeit
-- Arbeitsauftrag gleichzeitig sichtbar
-- Timer
-- Mikrofon-Lautstärke via Web Audio API
-- Toleranz für kurze Lautstärkespitzen
-- Fortschritt an die Arbeitszeit gekoppelt
-- 100 % frühestens in den letzten 3 Minuten
-- Dino-Ei mit CSS-Animationen
+- Mikrofon-Lautstärkemessung direkt im Browser
+- Arbeitsformen: Stillarbeit, Partnerarbeit, Gruppenarbeit und Freiarbeit
+- Mic-Sensitivity und Lärm-Toleranz können **während einer laufenden Challenge** angepasst werden
+- 9 Dino-Eier erscheinen und entwickeln sich zeitversetzt und überlappend in derselben Szene
+- bei 30 Minuten kann die Challenge frühestens nach 27 Minuten vollständig abgeschlossen werden
+- Arbeitsauftrag und Challenge gleichzeitig sichtbar
+- Klassen und XP werden lokal im Browser gespeichert
 - Vollbildmodus
 
 ## Lokal starten
 
-Mikrofonzugriff funktioniert zuverlässig über `localhost` oder HTTPS.
-
-### Mit Python
+Da Browser Mikrofonzugriff bei `file://` einschränken, die Dateien über einen lokalen Webserver öffnen:
 
 ```bash
 cd classroom-quest
@@ -29,8 +24,10 @@ python3 -m http.server 8080
 
 Dann im Browser öffnen:
 
-`http://localhost:8080`
+```text
+http://localhost:8080
+```
 
-## GitHub Pages
+## Hinweis
 
-Das Projekt ist absichtlich ohne Build-Schritt gebaut. Dadurch kann es später sehr einfach über GitHub Pages veröffentlicht werden.
+Die Lautstärke ist ein relativer Mikrofonwert und kein kalibrierter dB-Messwert.

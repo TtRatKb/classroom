@@ -24,21 +24,15 @@
     <main class="dashboard">
       <section class="game-card">
         <div class="scene" id="scene">
+          <div class="sun-glow"></div>
           <div class="cloud cloud-a"></div>
           <div class="cloud cloud-b"></div>
           <div class="hill hill-back"></div>
           <div class="hill hill-front"></div>
           <div class="plant plant-a">🌿</div>
           <div class="plant plant-b">🌱</div>
-          <div class="nest">
-            <div class="egg" id="egg">
-              <div class="crack crack-1"></div>
-              <div class="crack crack-2"></div>
-              <div class="crack crack-3"></div>
-              <div class="dino-face" id="dinoFace">🦖</div>
-            </div>
-          </div>
-          <div class="sparkles" id="sparkles">✨ ✨ ✨</div>
+          <div class="hatchery" id="hatchery" aria-label="Dino-Brutplatz"></div>
+          <div class="scene-message" id="sceneMessage">Die ersten Eier warten schon …</div>
         </div>
 
         <div class="status-row">
@@ -50,8 +44,32 @@
         </div>
 
         <div class="meter-wrap">
-          <div class="meter"><div id="meterFill" class="meter-fill"></div></div>
+          <div class="meter">
+            <div id="meterFill" class="meter-fill"></div>
+            <div id="thresholdMarker" class="threshold-marker" aria-hidden="true"></div>
+          </div>
           <div class="meter-labels"><span>leise</span><span>gut</span><span>zu laut</span></div>
+        </div>
+
+        <div class="live-controls" aria-label="Lautstärke während der Challenge anpassen">
+          <label class="live-control">
+            <span>🎤 Mic-Sensitivity</span>
+            <div class="live-range-row">
+              <input id="liveSensitivityInput" type="range" min="0" max="100" value="55" />
+              <strong id="liveSensitivityValue">55%</strong>
+            </div>
+            <small>Höher = reagiert schon bei leiseren Geräuschen.</small>
+          </label>
+          <label class="live-control live-select-control">
+            <span>⏱ Lärm-Toleranz</span>
+            <select id="liveToleranceSelect">
+              <option value="1000">1 Sekunde</option>
+              <option value="2000" selected>2 Sekunden</option>
+              <option value="3000">3 Sekunden</option>
+              <option value="5000">5 Sekunden</option>
+            </select>
+            <small>Kurze Spitzen innerhalb dieser Zeit werden nicht voll bestraft.</small>
+          </label>
         </div>
 
         <div class="progress-block">
@@ -60,7 +78,7 @@
             <strong id="progressText">0 %</strong>
           </div>
           <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
-          <div class="mini-note" id="progressNote">Der letzte Dino kann frühestens 3 Minuten vor Schluss schlüpfen.</div>
+          <div class="mini-note" id="progressNote">Die Dinos schlüpfen nacheinander – mit überlappenden Eiern.</div>
         </div>
 
         <div class="dino-grid" id="dinoGrid" aria-label="9 Dino-Eier"></div>
@@ -138,9 +156,9 @@
 
       <div class="form-grid">
         <label>
-          Lautstärke-Schwelle
-          <input id="thresholdInput" type="range" min="20" max="95" value="62" />
-          <span class="range-value"><span id="thresholdValue">62</span> / 100</span>
+          Mic-Sensitivity
+          <input id="sensitivityInput" type="range" min="0" max="100" value="55" />
+          <span class="range-value"><span id="sensitivityValue">55</span>% · höher = strenger</span>
         </label>
         <label>
           Toleranz bei Lautstärkespitzen

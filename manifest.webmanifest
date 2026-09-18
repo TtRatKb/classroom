@@ -1,0 +1,9 @@
+{
+  "name": "Classroom Quest",
+  "short_name": "Classroom Quest",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fffaf1",
+  "theme_color": "#5a3f78",
+  "description": "Gamifizierter Lautstärke-Monitor für Unterrichtsphasen"
+}

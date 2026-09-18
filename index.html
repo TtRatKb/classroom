@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#5a3f78" />
+  <title>Classroom Quest</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">CLASSROOM QUEST</div>
+        <h1 id="classTitle">Klassen-Challenge</h1>
+      </div>
+      <div class="top-actions">
+        <button id="settingsBtn" class="ghost-btn">⚙ Einstellungen</button>
+        <button id="fullscreenBtn" class="ghost-btn">⛶ Vollbild</button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="game-card">
+        <div class="scene" id="scene">
+          <div class="cloud cloud-a"></div>
+          <div class="cloud cloud-b"></div>
+          <div class="hill hill-back"></div>
+          <div class="hill hill-front"></div>
+          <div class="plant plant-a">🌿</div>
+          <div class="plant plant-b">🌱</div>
+          <div class="nest">
+            <div class="egg" id="egg">
+              <div class="crack crack-1"></div>
+              <div class="crack crack-2"></div>
+              <div class="crack crack-3"></div>
+              <div class="dino-face" id="dinoFace">🦖</div>
+            </div>
+          </div>
+          <div class="sparkles" id="sparkles">✨ ✨ ✨</div>
+        </div>
+
+        <div class="status-row">
+          <div>
+            <div class="status-label">Arbeitslautstärke</div>
+            <div id="noiseText" class="noise-text">Mikrofon noch nicht gestartet</div>
+          </div>
+          <div class="mode-pill" id="modePill">🤫 Stillarbeit</div>
+        </div>
+
+        <div class="meter-wrap">
+          <div class="meter"><div id="meterFill" class="meter-fill"></div></div>
+          <div class="meter-labels"><span>leise</span><span>gut</span><span>zu laut</span></div>
+        </div>
+
+        <div class="progress-block">
+          <div class="progress-copy">
+            <span>Dino-Fortschritt</span>
+            <strong id="progressText">0 %</strong>
+          </div>
+          <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+          <div class="mini-note" id="progressNote">Der letzte Dino kann frühestens 3 Minuten vor Schluss schlüpfen.</div>
+        </div>
+
+        <div class="dino-grid" id="dinoGrid" aria-label="9 Dino-Eier"></div>
+      </section>
+
+      <section class="task-card">
+        <div class="timer-box">
+          <div class="timer-label">Verbleibende Arbeitszeit</div>
+          <div id="timerDisplay" class="timer">30:00</div>
+          <div class="timer-actions">
+            <button id="startBtn" class="primary-btn">▶ Start</button>
+            <button id="pauseBtn" class="secondary-btn">Ⅱ Pause</button>
+            <button id="resetBtn" class="secondary-btn">↺ Reset</button>
+          </div>
+        </div>
+
+        <div class="assignment-box">
+          <div class="section-heading">Arbeitsauftrag</div>
+          <div id="assignmentDisplay" class="assignment-display">
+            1. Bearbeitet die Aufgaben.<br />
+            2. Vergleicht eure Ergebnisse.<br />
+            3. Einigt euch auf eine gemeinsame Lösung.
+          </div>
+        </div>
+
+        <div class="xp-card">
+          <div>
+            <div class="section-heading">Klassen-XP</div>
+            <div id="xpText" class="xp-text">0 XP</div>
+          </div>
+          <div class="xp-badge">⭐ <span id="rewardXpText">+5</span></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="settings-panel" id="settingsForm">
+      <div class="settings-header">
+        <div>
+          <div class="eyebrow">VORBEREITUNG</div>
+          <h2>Arbeitsphase einstellen</h2>
+        </div>
+        <button value="cancel" class="icon-btn" aria-label="Schließen">✕</button>
+      </div>
+
+      <div class="form-grid">
+        <label>
+          Klasse
+          <select id="classSelect"></select>
+        </label>
+        <label>
+          Arbeitsform
+          <select id="modeSelect">
+            <option value="silent">🤫 Stillarbeit</option>
+            <option value="partner">👥 Partnerarbeit</option>
+            <option value="group">👨‍👩‍👧‍👦 Gruppenarbeit</option>
+            <option value="free">🎨 Freiarbeit</option>
+          </select>
+        </label>
+        <label>
+          Dauer (Minuten)
+          <input id="durationInput" type="number" min="5" max="180" value="30" />
+        </label>
+        <label>
+          XP bei Erfolg
+          <input id="rewardXpInput" type="number" min="0" max="100" value="5" />
+        </label>
+      </div>
+
+      <label>
+        Arbeitsauftrag
+        <textarea id="assignmentInput" rows="6">1. Bearbeitet die Aufgaben.\n2. Vergleicht eure Ergebnisse.\n3. Einigt euch auf eine gemeinsame Lösung.</textarea>
+      </label>
+
+      <div class="form-grid">
+        <label>
+          Lautstärke-Schwelle
+          <input id="thresholdInput" type="range" min="20" max="95" value="62" />
+          <span class="range-value"><span id="thresholdValue">62</span> / 100</span>
+        </label>
+        <label>
+          Toleranz bei Lautstärkespitzen
+          <select id="toleranceSelect">
+            <option value="1000">1 Sekunde</option>
+            <option value="2000" selected>2 Sekunden</option>
+            <option value="3000">3 Sekunden</option>
+            <option value="5000">5 Sekunden</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="class-create">
+        <input id="newClassInput" type="text" placeholder="Neue Klasse, z. B. 7R1" />
+        <button type="button" id="addClassBtn" class="secondary-btn">+ Klasse anlegen</button>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="button" id="micBtn" class="secondary-btn">🎤 Mikrofon aktivieren</button>
+        <button value="default" id="saveSettingsBtn" class="primary-btn">Übernehmen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
